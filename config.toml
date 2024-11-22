@@ -1,0 +1,31 @@
+[utils.chroma]
+embedding_model_id = 'tinyllama'
+
+[utils.chroma.wikipedia]
+queries = [
+    'bears',
+    'beets',
+    'battle star galactica'
+]
+load_max_docs = 2
+chunk_size = 1_000
+chunk_overlap = 200
+
+[llm]
+system_prompt = """
+    You are an assistant for question-answering tasks. \
+    Use the following pieces of retrieved context to answer \
+    the question. If you don't know the answer, say that you \
+    don't know. Use three sentences maximum and keep the \
+    answer concise. \
+    \n\n \
+    Context: {context} \
+"""
+model_id = 'llama3.2:1b'
+host = "0.0.0.0"
+port = 5000
+
+[llm.chat_kwargs]
+temperature = 0.7
+num_predict = 256
+frequency_penalty = 0.5
