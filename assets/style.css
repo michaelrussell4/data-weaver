@@ -1,0 +1,61 @@
+:root {
+    --indigo: rgb(99 102 241);
+}
+
+/* Completely hide scrollbar arrows */
+::-webkit-scrollbar-button {
+    width: 0;
+    height: 0;
+    display: none;
+}
+
+/* Apply to all scrollbars */
+::-webkit-scrollbar {
+    width: 6px; /* Width of vertical scrollbar */
+    height: 6px; /* Height of horizontal scrollbar */
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(190, 190, 190, 0.6); /* Soft gray with some transparency */
+    border-radius: 50%; /* Rounded corners for the scrollbar thumb */
+}
+
+/* Firefox scrollbar styling */
+* {
+    scrollbar-width: thin; /* Makes the scrollbar thinner */
+    scrollbar-color: rgba(190, 190, 190, 0.6) rgba(0,0,0,0); /* Thumb and track colors */
+}
+
+/* Ensure the header is positioned relative for absolute positioning of pseudo-elements */
+.header {
+    position: relative;
+    overflow: hidden;
+}
+
+/* Create the first triangle with ::before */
+.header::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    opacity: .2;
+    border-left: 16rem solid var(--indigo);  /* Left triangle */
+    border-bottom: 5rem solid transparent;  /* Semi-transparent bottom */
+    z-index: 1;  /* Ensures the triangle is above other content */
+}
+
+/* Create the second triangle with ::after */
+.header::after {
+    content: "";
+    position: absolute;
+    top: 20px; /* Adjust for overlap */
+    left: 0px; /* Adjust for overlap */
+    width: 0;
+    height: 0;
+    opacity: .3;
+    border-left: 56rem solid var(--indigo); /* Larger triangle with transparency */
+    border-top: 13rem solid transparent; /* More opaque blue */
+    z-index: 0;  /* Ensures the second triangle is beneath the first one */
+}

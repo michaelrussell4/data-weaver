@@ -6,6 +6,7 @@
 import dash_mantine_components as dmc
 from dash_iconify import DashIconify
 from dash import Dash, html, Input, Output, State, callback, _dash_renderer
+from utils.app_helper import chroma_df, COLOR_PALETTE
 
 _dash_renderer._set_react_version("18.2.0")
 
@@ -14,7 +15,7 @@ def create_message(message, icon, icon_right=False):
     icon_comp = DashIconify(
         icon=icon,
         width=30,
-        className="text-indigo-500 text-3xl z-20 mr-2 bg-white",
+        className=f"text-indigo-500 text-3xl z-20 m{"l" if icon_right else "r"}-2 bg-white",
     )
     msg_comp = html.Div(
         message,
@@ -30,7 +31,7 @@ def create_message(message, icon, icon_right=False):
     if icon_right:
         children = children[::-1]
     return html.Div(
-        className=f"flex justify-{"end" if icon_right else "start"}",
+        className=f"mt-6 flex justify-{"end" if icon_right else "start"}",
         children=children,
     )
 
@@ -43,19 +44,45 @@ def create_user_message(message):
     return create_message(message, "mdi:account", True)
 
 
+EXT_COLOR_MAP = {}
+
+
+def make_ext_button(ext):
+    """
+    Creates a button for a file extension with a unique color.
+
+    Args:
+        ext (str): The file extension.
+
+    Returns:
+        dmc.Button: A styled button with a unique color for the extension.
+    """
+    # Assign a color to the extension if not already assigned
+    if ext not in EXT_COLOR_MAP:
+        EXT_COLOR_MAP[ext] = next(COLOR_PALETTE)
+
+    # Create the button with the assigned color
+    return dmc.Button(
+        ext,
+        id={"type": "ext-button", "index": ext},
+        radius="xl",
+        className=f"text-center text-white {EXT_COLOR_MAP[ext]}",
+    )
+
+
 # Initialize the Dash app
 app = Dash(__name__, external_stylesheets=dmc.styles.ALL + ["assets/tailwind.min.css"])
 
-# Set Mantine Provider for overall theming
 app.layout = dmc.MantineProvider(
     children=[
         # Main
         html.Div(
-            className="divide-y divide-indigo-200 h-screen",
+            className="flex flex-col h-screen w-screen divide-y divide-indigo-200 overflow-hidden absolute",
             children=[
                 # Header
                 html.Div(
-                    className="flex space-x-2 items-center justify-end pr-8 m-0 h-16 w-full",
+                    className="header flex space-x-2 items-center justify-end pr-8 m-0 w-full",
+                    style={"minHeight": "4rem"},
                     children=[
                         html.Div(
                             className="flex m-0",
@@ -79,22 +106,19 @@ app.layout = dmc.MantineProvider(
                 ),
                 # Body
                 html.Div(
-                    style={"height": "calc(100vh - 4rem)"},
-                    className="flex flex-col",
+                    className="flex-grow flex flex-col overflow-hidden",
                     children=[
+                        # Search and Chat Headers
                         html.Div(
-                            className="grid grid-cols-2 gap-4 p-4 text-xl",
+                            className="hidden md:flex md:flex-col md:grid md:grid-cols-2 gap-4 p-4 text-xl",
                             children=[
-                                # Data search header
                                 html.Div(
                                     className="flex justify-center items-center gap-2",
                                     children=[
                                         html.Div(
                                             className="flex items-center gap-1",
                                             children=[
-                                                html.Span(
-                                                    "Search",
-                                                ),
+                                                html.Span("Search"),
                                                 html.Span(
                                                     "Data",
                                                     className="text-indigo-500",
@@ -108,16 +132,13 @@ app.layout = dmc.MantineProvider(
                                         ),
                                     ],
                                 ),
-                                # Chat Header
                                 html.Div(
                                     className="flex justify-center items-center gap-2",
                                     children=[
                                         html.Div(
                                             className="flex items-center gap-1",
                                             children=[
-                                                html.Span(
-                                                    "Chat with",
-                                                ),
+                                                html.Span("Chat with"),
                                                 html.Span(
                                                     "Weaver",
                                                     className="text-indigo-500",
@@ -133,16 +154,16 @@ app.layout = dmc.MantineProvider(
                                 ),
                             ],
                         ),
+                        # Main Content
                         html.Div(
-                            className="flex-grow grid grid-cols-2 gap-4",
+                            className="flex-grow flex flex-col grid grid-cols-1 md:grid-cols-2 gap-4 p-4 h-full overflow-hidden",
                             children=[
                                 # Left Column
                                 html.Div(
-                                    className="flex flex-col gap-4 p-4 h-full",
+                                    className="flex flex-col gap-4 max-h-full overflow-y-auto",
                                     children=[
-                                        # Search Input
                                         html.Div(
-                                            className="w-full",
+                                            className="w-full flex flex-col gap-4",
                                             children=[
                                                 dmc.TextInput(
                                                     size="lg",
@@ -153,23 +174,59 @@ app.layout = dmc.MantineProvider(
                                                         width=20,
                                                     ),
                                                 ),
+                                                html.Div(
+                                                    className="grid grid-flow-row grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-2",
+                                                    children=[
+                                                        make_ext_button(ext)
+                                                        for ext in chroma_df.ext.unique()
+                                                    ],
+                                                ),
+                                            ],
+                                        ),
+                                        html.Div(
+                                            className="flex-grow overflow-y-auto",  # Scrolling for content
+                                            children=[
+                                                *[
+                                                    html.Div("hi") for _ in range(100)
+                                                ],  # Large content
                                             ],
                                         ),
                                     ],
                                 ),
                                 # Right Column
                                 html.Div(
-                                    className="flex flex-col gap-4 p-4 h-full",
+                                    className="flex flex-col gap-4 max-h-full overflow-y-auto",
                                     children=[
                                         # Chat Card
                                         html.Div(
-                                            className="flex-grow flex flex-col justify-end border border-gray-200 shadow-sm rounded-lg p-4",
+                                            className="flex-grow border border-gray-200 shadow-sm rounded-lg p-4 h-full max-h-full overflow-y-auto",
                                             children=[
                                                 create_weaver_message(
-                                                    "Hi, I'm Weaver. Ask me anything!"
+                                                    "Hi, I'm Weaver. Ask me anything! anything! anything! anything! anything!anything!anything! anything! anything! anything!"
                                                 ),
                                                 create_user_message(
-                                                    "hey do you know anything?"
+                                                    "hey do you know anything? anything? anything? anything? anything?anything?anything? anything? anything? anything?"
+                                                ),
+                                                create_user_message(
+                                                    "hey do you know anything? anything? anything? anything? anything?anything?anything? anything? anything? anything?"
+                                                ),
+                                                create_user_message(
+                                                    "hey do you know anything? anything? anything? anything? anything?anything?anything? anything? anything? anything?"
+                                                ),
+                                                create_weaver_message(
+                                                    "Hi, I'm Weaver. Ask me anything! anything! anything! anything! anything!anything!anything! anything! anything! anything!"
+                                                ),
+                                                create_user_message(
+                                                    "hey do you know anything? anything? anything? anything? anything?anything?anything? anything? anything? anything?"
+                                                ),
+                                                create_weaver_message(
+                                                    "Hi, I'm Weaver. Ask me anything! anything! anything! anything! anything!anything!anything! anything! anything! anything!"
+                                                ),
+                                                create_user_message(
+                                                    "hey do you know anything? anything? anything? anything? anything?anything?anything? anything? anything? anything?"
+                                                ),
+                                                create_weaver_message(
+                                                    "Hi, I'm Weaver. Ask me anything! anything! anything! anything! anything!anything!anything! anything! anything! anything!"
                                                 ),
                                             ],
                                         ),

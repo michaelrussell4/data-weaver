@@ -1,4 +1,4 @@
-# pylint: disable=C0114, W0718
+# pylint: disable=C0114, W0718, W0719
 
 import os
 import tomllib
@@ -29,6 +29,7 @@ rag_docs_directory = os.path.join(parent_dir, "assets", "rag_docs")
 with open(config_path, "rb") as f:
     config = tomllib.load(f)
 embedding_model_id = config["utils"]["chroma"]["embedding_model_id"]
+collection_name = config["utils"]["chroma"]["collection_name"]
 config_wiki = config["utils"]["chroma"]["wikipedia"]
 
 # Set up argument parser for verbose mode
@@ -137,8 +138,17 @@ def main():
 
     embedding = OllamaEmbeddings(model=embedding_model_id)
     vectorstore = Chroma(
-        embedding_function=embedding, persist_directory=persist_directory
+        collection_name=collection_name,
+        embedding_function=embedding,
+        persist_directory=persist_directory,
     )
+
+    try:
+        vectorstore.reset_collection()
+        if args.verbose:
+            print(f"Collection {collection_name} reset successfully.")
+    except Exception as e:
+        raise Exception("Unable to reset collection") from e
 
     if args.verbose:
         print(f"Persisting documents to Chroma DB in {persist_directory}...")

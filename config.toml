@@ -1,5 +1,6 @@
 [utils.chroma]
 embedding_model_id = 'tinyllama'
+collection_name = 'chroma_rag_docs'
 
 [utils.chroma.wikipedia]
 queries = [
