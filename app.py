@@ -6,69 +6,16 @@
 import dash_mantine_components as dmc
 from dash_iconify import DashIconify
 from dash import Dash, html, Input, Output, State, callback, _dash_renderer
-from utils.app_helper import chroma_df, COLOR_PALETTE
+from utils.app_helper import (
+    chroma_df,
+    make_ext_button,
+    make_file_display,
+    create_weaver_message,
+    create_user_message,
+)
+
 
 _dash_renderer._set_react_version("18.2.0")
-
-
-def create_message(message, icon, icon_right=False):
-    icon_comp = DashIconify(
-        icon=icon,
-        width=30,
-        className=f"text-indigo-500 text-3xl z-20 m{"l" if icon_right else "r"}-2 bg-white",
-    )
-    msg_comp = html.Div(
-        message,
-        className=f"bg-{"blue" if icon_right else "gray"}-100 shadow-sm rounded-xl p-4 text-gray-500 z-10",
-        style={
-            "white-space": "pre-wrap",  # Only break on newlines unless forced
-            "word-wrap": "break-word",  # Break words if constrained
-            "width": "fit-content",  # Adjust width to fit content
-            "max-width": "66.6666%",  # Max width is 2/3 of the parent
-        },
-    )
-    children = [icon_comp, msg_comp]
-    if icon_right:
-        children = children[::-1]
-    return html.Div(
-        className=f"mt-6 flex justify-{"end" if icon_right else "start"}",
-        children=children,
-    )
-
-
-def create_weaver_message(message):
-    return create_message(message, "mdi:robot-outline")
-
-
-def create_user_message(message):
-    return create_message(message, "mdi:account", True)
-
-
-EXT_COLOR_MAP = {}
-
-
-def make_ext_button(ext):
-    """
-    Creates a button for a file extension with a unique color.
-
-    Args:
-        ext (str): The file extension.
-
-    Returns:
-        dmc.Button: A styled button with a unique color for the extension.
-    """
-    # Assign a color to the extension if not already assigned
-    if ext not in EXT_COLOR_MAP:
-        EXT_COLOR_MAP[ext] = next(COLOR_PALETTE)
-
-    # Create the button with the assigned color
-    return dmc.Button(
-        ext,
-        id={"type": "ext-button", "index": ext},
-        radius="xl",
-        className=f"text-center text-white {EXT_COLOR_MAP[ext]}",
-    )
-
 
 # Initialize the Dash app
 app = Dash(__name__, external_stylesheets=dmc.styles.ALL + ["assets/tailwind.min.css"])
@@ -187,8 +134,14 @@ app.layout = dmc.MantineProvider(
                                             className="flex-grow overflow-y-auto",  # Scrolling for content
                                             children=[
                                                 *[
-                                                    html.Div("hi") for _ in range(100)
-                                                ],  # Large content
+                                                    html.Div(
+                                                        className="grid grid-flow-row grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-4",
+                                                        children=[
+                                                            make_file_display(file)
+                                                            for file in chroma_df.source.unique()
+                                                        ],
+                                                    )
+                                                ],
                                             ],
                                         ),
                                     ],
