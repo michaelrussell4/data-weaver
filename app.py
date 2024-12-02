@@ -5,13 +5,27 @@
 
 import dash_mantine_components as dmc
 from dash_iconify import DashIconify
-from dash import Dash, html, Input, Output, State, callback, _dash_renderer
+from dash import (
+    Dash,
+    html,
+    Input,
+    Output,
+    State,
+    callback,
+    _dash_renderer,
+    clientside_callback,
+    Patch,
+    dcc,
+    State,
+)
 from utils.app_helper import (
     chroma_df,
     make_ext_button,
     make_file_display,
     create_weaver_message,
     create_user_message,
+    make_df_from_vectorstore,
+    chat_ai,
 )
 
 
@@ -135,7 +149,8 @@ app.layout = dmc.MantineProvider(
                                             children=[
                                                 *[
                                                     html.Div(
-                                                        className="grid grid-flow-row grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-4",
+                                                        id="file-display",
+                                                        className="grid grid-flow-row grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4",
                                                         children=[
                                                             make_file_display(file)
                                                             for file in chroma_df.source.unique()
@@ -152,34 +167,11 @@ app.layout = dmc.MantineProvider(
                                     children=[
                                         # Chat Card
                                         html.Div(
+                                            id="chat-cards",
                                             className="flex-grow border border-gray-200 shadow-sm rounded-lg p-4 h-full max-h-full overflow-y-auto",
                                             children=[
                                                 create_weaver_message(
-                                                    "Hi, I'm Weaver. Ask me anything! anything! anything! anything! anything!anything!anything! anything! anything! anything!"
-                                                ),
-                                                create_user_message(
-                                                    "hey do you know anything? anything? anything? anything? anything?anything?anything? anything? anything? anything?"
-                                                ),
-                                                create_user_message(
-                                                    "hey do you know anything? anything? anything? anything? anything?anything?anything? anything? anything? anything?"
-                                                ),
-                                                create_user_message(
-                                                    "hey do you know anything? anything? anything? anything? anything?anything?anything? anything? anything? anything?"
-                                                ),
-                                                create_weaver_message(
-                                                    "Hi, I'm Weaver. Ask me anything! anything! anything! anything! anything!anything!anything! anything! anything! anything!"
-                                                ),
-                                                create_user_message(
-                                                    "hey do you know anything? anything? anything? anything? anything?anything?anything? anything? anything? anything?"
-                                                ),
-                                                create_weaver_message(
-                                                    "Hi, I'm Weaver. Ask me anything! anything! anything! anything! anything!anything!anything! anything! anything! anything!"
-                                                ),
-                                                create_user_message(
-                                                    "hey do you know anything? anything? anything? anything? anything?anything?anything? anything? anything? anything?"
-                                                ),
-                                                create_weaver_message(
-                                                    "Hi, I'm Weaver. Ask me anything! anything! anything! anything! anything!anything!anything! anything! anything! anything!"
+                                                    "Hi, I'm Weaver. Ask me anything!"
                                                 ),
                                             ],
                                         ),
@@ -219,6 +211,50 @@ app.layout = dmc.MantineProvider(
 
 
 @callback(
+    Output("file-display", "children"),
+    Input("doc-search-input", "value"),
+    prevent_initial_call=True,
+)
+def update_file_display(search_value):
+    return [
+        make_file_display(file)
+        for file in make_df_from_vectorstore(search_value).source.unique()
+    ]
+
+
+clientside_callback(
+    """(input) => '';""",
+    Output("chat-input", "value"),
+    Input("send-chat-btn", "n_clicks"),
+)
+
+
+@callback(
+    Output("chat-cards", "children"),
+    Input("send-chat-btn", "n_clicks"),
+    State("chat-input", "value"),
+    prevent_initial_call=True,
+)
+def update_user_chat(n_clicks, user_input):
+    chat_cards = Patch()
+    chat_cards.append(create_user_message(user_input))
+    return chat_cards
+
+
+@callback(
+    Output("chat-cards", "children", allow_duplicate=True),
+    Input("send-chat-btn", "n_clicks"),
+    State("chat-input", "value"),
+    prevent_initial_call=True,
+)
+def update_weaver_chat(n_clicks, user_input):
+    chat_cards = Patch()
+    chat_response = chat_ai(user_input)
+    chat_cards.append(create_weaver_message(chat_response))
+    return chat_cards
+
+
+@callback(
     Output("send-chat-btn", "disabled"),
     Input("chat-input", "value"),
     prevent_initial_call=True,
@@ -229,4 +265,4 @@ def update_disabled_for_chat_btn(chat_input):
 
 # Run the app
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)

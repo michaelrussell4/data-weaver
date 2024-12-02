@@ -33,8 +33,13 @@ with open("config.toml", "rb") as f:
 
 # Get vectorstore
 embedding_model_id = config["utils"]["chroma"]["embedding_model_id"]
+collection_name = config["utils"]["chroma"]["collection_name"]
 embedding_model = OllamaEmbeddings(model=embedding_model_id)
-vectorstore = Chroma(embedding_function=embedding_model, persist_directory="chroma")
+vectorstore = Chroma(
+    collection_name=collection_name,
+    embedding_function=embedding_model,
+    persist_directory="chroma",
+)
 retriever = vectorstore.as_retriever()
 
 # Build LLM and RAG chain

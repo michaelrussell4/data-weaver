@@ -1,6 +1,7 @@
 """Helper functions and variables for the Dash app."""
 
 import os
+import requests
 from urllib.parse import urlparse
 import tomllib
 from itertools import cycle
@@ -35,6 +36,15 @@ vectorstore = Chroma(
     persist_directory="chroma",
 )
 EXT_COLOR_MAP = {}
+
+
+def chat_ai(input_text):
+    api_url = "http://127.0.0.1:5000/query"  # Replace with your Flask app URL
+    response = requests.post(api_url, json={"input": input_text})
+    response.raise_for_status()  # Raise an error for HTTP issues
+    data = response.json()
+    data_out = data.get("response", "No response received")
+    return data_out["answer"]
 
 
 def is_url(input_string: str) -> bool:
@@ -99,21 +109,30 @@ def get_file_icon(file_name):
 
 
 def make_file_display(file_path):
-    # Extract the file name or handle URLs
-    file_name = (
-        os.path.basename(file_path)
-        if not file_path.startswith("http")
-        else file_path.split("/")[-1]
-    )
+    # Check if the path is a URL
+    file_is_url = file_path.startswith("http")
+
+    # Extract the file name (include extension if it's a file)
+    if file_is_url:
+        file_name = file_path.split("/")[-1]
+    else:
+        file_name = os.path.basename(file_path)
+
     # Truncate file name for aesthetic purposes
-    display_name = file_name if len(file_name) <= 20 else file_name[:17] + "..."
+    display_name = file_name if len(file_name) <= 20 else file_name[:12] + "..."
 
     return html.A(
         href=file_path,
-        target="_blank",  # Open in a new tab
-        className="flex flex-col items-center text-center p-2 border rounded hover:shadow-md",
+        target="_blank",
+        title=file_name,  # Set the full file name or URL as the tooltip
+        className=(
+            "flex flex-col justify-center items-center text-center p-1 pt-2 border "
+            "rounded-lg shadow-sm hover:shadow-lg h-24 bg-gray-100 gap-2"
+        ),
         children=[
-            DashIconify(icon=get_file_icon(file_path), width=32, height=32),
+            DashIconify(
+                icon=get_file_icon(file_path), width=30, className="text-indigo-900"
+            ),
             html.Div(display_name, className="text-sm"),
         ],
     )
@@ -175,7 +194,17 @@ def make_ext_button(ext):
     )
 
 
-chroma_df = pd.DataFrame(
-    [v["source"] for v in vectorstore.get()["metadatas"]], columns=["source"]
-)
-chroma_df["ext"] = chroma_df.source.apply(get_source_type)
+def make_df_from_vectorstore(search: str = None):
+    if search:
+        sources = [
+            doc.metadata["source"] for doc in vectorstore.similarity_search(search)
+        ]
+    else:
+        sources = [v["source"] for v in vectorstore.get()["metadatas"]]
+    _chroma_df = pd.DataFrame(sources, columns=["source"])
+    _chroma_df["ext"] = _chroma_df.source.apply(get_source_type)
+
+    return _chroma_df
+
+
+chroma_df = make_df_from_vectorstore()
